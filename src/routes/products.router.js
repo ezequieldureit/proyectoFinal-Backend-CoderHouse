@@ -1,71 +1,49 @@
-import express from 'express';
-import ProductManager from '../productManager.js';
+// Products.routes:
+
+// Nunca validas que el body esta bien formado (libre de null, undefined o "")  ni que este no incluya un ID. >> corregido
+
+// En la ruta post para crear productos, haces esto:
+
+// productsRouter.post('/', async (req, res) => {
+//     const newProduct = req.body;
+//     await productManager.addProduct(newProduct);
+//     res.status(201).json(newProduct);
+// });
+// Ahora, el newProduct no tiene un ID, si lo retornas finalmente, el producto que estas devolviendo NO tiene ID. >> corregido
+
+// En el delete, puede llegar a decir "Producto no encontrado" inclusive si el producto con ese ID no estuvo nunca incluido. >> corregido
+
+// 100% de lo logica se paso al Manager.
+
+import express from "express";
+import ProductManager from "../controllers/productManager.js";
 
 const productsRouter = express.Router();
-const productManager = new ProductManager('products.json');
+const productManager = new ProductManager();
 
-
-// Ruta GET para obtener todos los productos y por limit
-productsRouter.get('/', async (req, res) => {
-  const limit = parseInt(req.query.limit);
-  const products = await productManager.getProducts();
-  
-  if (!isNaN(limit)) {
-    const limitedProducts = products.slice(0, limit);
-    res.json(limitedProducts);
-  } else {
-    res.json(products);
-  }
+productsRouter.get("/", async (req, res) => {
+  res.send(await productManager.getProducts());
 });
 
-
-// Ruta GET para obtener un producto por su ID
-productsRouter.get('/:pid', async (req, res) => {
-  const productId = parseInt(req.params.pid);
-  const product = await productManager.getProductById(productId);
-  
-  if (product) {
-    res.json(product);
-  } else {
-    res.status(404).json({ error: 'Producto no encontrado' });
-  }
+productsRouter.get("/:id", async (req, res) => {
+  let id = req.params.id;
+  res.send(await productManager.getProductById(id));
 });
 
-// Ruta PUT para actualizar un producto por su ID
-productsRouter.put('/:pid', async (req, res) => {
-  const productId = parseInt(req.params.pid);
-  const updatedProduct = req.body;
-  const product = await productManager.getProductById(productId);
-
-  if (!product) {
-    res.status(404).json({ error: 'Producto no encontrado' });
-    return;
-  }
-  await productManager.updateProduct(productId, updatedProduct);
-  res.status(200).json({ message: `Producto con ID ${productId} actualizado` });
+productsRouter.post("/", async (req, res) => {
+  let newProduct = req.body;
+  res.send(await productManager.addProducts(newProduct));
 });
 
-// Ruta POST para crear un nuevo producto
-productsRouter.post('/', async (req, res) => {
-  const newProduct = req.body;
-  await productManager.addProduct(newProduct);
-  res.status(201).json(newProduct);
+productsRouter.put("/:id", async (req, res) => {
+  let id = req.params.id;
+  let updatedProduct = req.body;
+  res.send(await productManager.updateProducts(id, updatedProduct));
 });
 
-// Ruta DELETE para eliminar un producto por su ID
-productsRouter.delete('/:pid', async (req, res) => {
-  const productId = parseInt(req.params.pid);
-  await productManager.deleteProduct(productId);
-  res.json({ message: `Producto con ID ${productId} eliminado` });
+productsRouter.delete("/:id", async (req, res) => {
+  let id = req.params.id;
+  res.send(await productManager.deleteProducts(id));
 });
 
 export default productsRouter;
-
-// Testing process>>
-// GET All products >> OK
-// GET products by limit >> OK
-// GET product by ID >> OK
-// PUT product by ID >> OK
-// POST product >> OK
-// DELETE product by ID >> OK
-

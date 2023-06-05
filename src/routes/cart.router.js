@@ -1,55 +1,35 @@
+// Carts.routes
+
+// En el get por ID del carrito, haces esto:
+
+// id: await cartManager.generateCartId(),
+// Pero el endpoint no es el que debe pedirle al CartManager un ID sino pedirle que cree directamente el cart y este se lo retorne, con ID y todo. >> corregido
+
+// En el post de agregar un producto a un carrito, asumis que el quantity te viene por body pero esto no es así segun el enunciado. El quantity se calcula y se va incrementando de a uno. Es decir, la primera vez que se agrega un producto al carrito su quantity es 1, y luego se va incrementando sobre este valor. >> corregido
+// 100% de lo logica se paso al cartManager.
+
 import express from "express";
-import CartManager from "../cartManager.js";
+import CartManager from "../controllers/cartManager.js";
 
 const cartRouter = express.Router();
-const cartManager = new CartManager("carrito.json");
+const cartManager = new CartManager();
 
 cartRouter.post("/", async (req, res) => {
-  const newCart = {
-    id: await cartManager.generateCartId(),
-    products: [],
-  };
-
-  await cartManager.addCart(newCart);
-  res.json(newCart);
+  res.send(await cartManager.addCarts());
 });
 
-cartRouter.get("/:cid", async (req, res) => {
-  const cartId = req.params.cid;
-  const cart = await cartManager.getCartById(cartId);
+cartRouter.get("/", async (req, res) => {
+  res.send(await cartManager.readCart());
+});
 
-  if (cart) {
-    res.status(200).json(cart.products);
-  } else {
-    res.status(404).json({ error: "Carrito no encontrado" });
-  }
+cartRouter.get("/:id", async (req, res) => {
+  res.send(await cartManager.getCartById(req.params.id));
 });
 
 cartRouter.post("/:cid/products/:pid", async (req, res) => {
-  const cartId = req.params.cid;
-  const productId = parseInt(req.params.pid);
-  const quantity = req.body.quantity || 1;
-
-  const cart = await cartManager.getCartById(cartId);
-  if (!cart) {
-    res.status(404).json({ error: "Carrito no encontrado" });
-    return;
-  }
-
-  const existingProduct = cart.products.find((p) => p.product === productId);
-  if (existingProduct) {
-    existingProduct.quantity += quantity;
-  } else {
-    cart.products.push({ product: productId, quantity });
-  }
-
-  await cartManager.updateCart(cartId, productId, quantity);
-  res.status(201).json({ message: "Producto agregado al carrito" });
+  let cartId = req.params.cid;
+  let productId = req.params.pid;
+  res.send(await cartManager.addProductInCart(cartId, productId));
 });
 
 export default cartRouter;
-
-//Testing process>>
-// POST create cart >> OK
-// GET cart by ID >> OK
-// POST product in the cart by ID >> OK
