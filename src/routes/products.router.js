@@ -16,7 +16,7 @@
 // 100% de lo logica se paso al Manager.
 
 import express from "express";
-import ProductManager from "../controllers/productManager.js";
+import ProductManager from "../manager/productManager.js";
 
 const productsRouter = express.Router();
 const productManager = new ProductManager();

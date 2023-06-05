@@ -22,7 +22,7 @@ import { nanoid } from "nanoid";
 import ProductManager from "./productManager.js";
 
 class CartManager {
-  #route = "../src/models/carrito.json";
+  #route = "./src/models/carrito.json";
 
   constructor() {
     this.filePath = this.#route;
@@ -81,8 +81,8 @@ class CartManager {
   async getCartById(id) {
     try {
       const cartById = await this.existProductInCart(id);
-      if (!cartById) return { status: 404, message: "Cart not found" };
-      return { status: 200, data: cartById };
+      if (!cartById) return "Cart not found";
+      return cartById;
     } catch (error) {
       console.error("Error getting cart by ID:", error);
       throw new Error("Error getting cart by ID");
@@ -92,10 +92,10 @@ class CartManager {
   async addProductInCart(cartId, productId) {
     try {
       const cartById = await this.existProductInCart(cartId);
-      if (!cartById) return { status: 404, message: "Cart not found" };
+      if (!cartById) return "Cart not found";
 
       const productById = await this.productManager.existProduct(productId);
-      if (!productById) return { status: 404, message: "Product not found" };
+      if (!productById) return "Product not found";
 
       const cartAll = await this.readCart();
       const cartFilter = cartAll.filter((cart) => cart.id != cartId);
@@ -111,7 +111,7 @@ class CartManager {
 
       const cartConcat = [cartById, ...cartFilter];
       await this.writeCart(cartConcat);
-      return { status: 200, message: "Product added to cart" };
+      return "Product added to cart";
     } catch (error) {
       console.error("Error adding product to cart:", error);
       throw new Error("Error adding product to cart");

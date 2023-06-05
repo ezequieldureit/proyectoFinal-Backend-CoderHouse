@@ -9,7 +9,7 @@
 // 100% de lo logica se paso al cartManager.
 
 import express from "express";
-import CartManager from "../controllers/cartManager.js";
+import CartManager from "../manager/cartManager.js";
 
 const cartRouter = express.Router();
 const cartManager = new CartManager();
