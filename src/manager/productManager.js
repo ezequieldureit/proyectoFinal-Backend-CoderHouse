@@ -1,25 +1,13 @@
-// ProductManager: >>
-
-// El getProducts si hay un error devuelve una lista vacia. Pero si hay un error no deberiamos devolver nada. >> corregido
-
-// El updateProduct no controla que el updateProduct tenga los campos distintos de null, undefined o "" pero sobre todo,  no válidas que el updateProduct tenga o no el campo ID y no queremos que nos venga de afuera. >> corregido
-
-// El status del producto es por defecto true pero puede no serlo. >> corregido
-
-// La lógica con la que calculas el ID es complicada y poco intuitiva. Una variable privada es mucho más simple y se alinea más con lo visto en el curso. >> corregido
-
 import fs from "fs";
-import { nanoid } from "nanoid"; // importo libreria para gestionar los id de manera automatica y sin repetirse.
+import { nanoid } from "nanoid";
 
 class ProductManager {
-  #route = "./src/models/products.json";
-
-  constructor() {
-    this.filePath = this.#route;
+  constructor(filePath) {
+    this.filePath = filePath || "./src/models/products.json";
     this.createProductsFileIfNotExists();
   }
 
-  // Validacion de archivo products.json, si no esta lo crea.
+  // Validación de archivo products.json, si no existe lo crea.
   createProductsFileIfNotExists() {
     if (!fs.existsSync(this.filePath)) {
       fs.writeFileSync(this.filePath, "[]");
@@ -60,38 +48,43 @@ class ProductManager {
   // Funciones principales de productos
 
   async addProducts(product) {
-    const { code } = product;
+    try {
+      const { code } = product;
 
-    const requiredFields = [
-      "title",
-      "description",
-      "price",
-      "thumbnails",
-      "code",
-      "stock",
-      "status",
-      "category",
-    ];
+      const requiredFields = [
+        "title",
+        "description",
+        "price",
+        "thumbnails",
+        "code",
+        "stock",
+        "status",
+        "category",
+      ];
 
-    const missingFields = requiredFields.filter((field) => !(field in product));
+      const missingFields = requiredFields.filter(
+        (field) => !(field in product)
+      );
 
-    if (missingFields.length > 0) {
-      return {
-        message: `Missing required fields: ${missingFields.join(", ")}`,
-      };
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
+      }
+
+      const existingProduct = await this.existProductByCode(code);
+
+      if (existingProduct) {
+        throw new Error("Product code already exists");
+      }
+
+      const oldProducts = await this.readProducts();
+      product.id = nanoid();
+      const allProducts = [...oldProducts, product];
+      await this.writeProducts(allProducts);
+      return product;
+    } catch (error) {
+      console.error("Error adding product:", error);
+      throw new Error("Error adding product");
     }
-
-    const existingProduct = await this.existProductByCode(code);
-
-    if (existingProduct) {
-      return { message: "Product code already exists" };
-    }
-
-    const oldProducts = await this.readProducts();
-    product.id = nanoid();
-    const allProducts = [...oldProducts, product];
-    await this.writeProducts(allProducts);
-    return "Product added";
   }
 
   async getProducts() {
@@ -107,7 +100,6 @@ class ProductManager {
   async getProductById(id) {
     try {
       const productById = await this.existProduct(id);
-      if (!productById) return "Product not found";
       return productById;
     } catch (error) {
       console.error("Error getting product by ID:", error);
@@ -117,17 +109,25 @@ class ProductManager {
 
   async updateProducts(id, updatedProduct) {
     try {
-      const product = await this.existProduct(id);
-      if (!product) return "Product not found";
-      await this.deleteProducts(id);
+      const productIndex = await this.getProductIndex(id);
+      if (productIndex === -1) {
+        throw new Error("Product not found");
+      }
+
       const oldProducts = await this.readProducts();
-      const products = [{ ...updatedProduct, id: id }, ...oldProducts];
-      await this.writeProducts(products);
-      return "Product updated";
+      oldProducts[productIndex] = { ...updatedProduct, id: id };
+
+      await this.writeProducts(oldProducts);
+      return updatedProduct;
     } catch (error) {
       console.error("Error updating product:", error);
       throw new Error("Error updating product");
     }
+  }
+
+  async getProductIndex(id) {
+    const products = await this.readProducts();
+    return products.findIndex((product) => product.id === id);
   }
 
   async deleteProducts(id) {
@@ -139,7 +139,7 @@ class ProductManager {
         await this.writeProducts(filteredProducts);
         return "The product has been removed";
       }
-      return  "The product you want to delete doesn't exist";
+      return "The product you want to delete doesn't exist";
     } catch (error) {
       console.error("Error deleting product:", error);
       throw new Error("Error deleting product");
